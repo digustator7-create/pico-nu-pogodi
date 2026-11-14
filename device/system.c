@@ -102,7 +102,7 @@ void mainloop() {
   }
     gpio_init(BACKLIGHT_PIN);
     gpio_set_dir(BACKLIGHT_PIN, GPIO_OUT);
-    gpio_put(BACKLIGHT_PIN, 0);
+    gpio_put(BACKLIGHT_PIN, 1);
     last_activity_ms = to_ms_since_boot(get_absolute_time());
   
   multicore_launch_core1(render);
@@ -115,9 +115,9 @@ void mainloop() {
             uint32_t now = to_ms_since_boot(get_absolute_time());
             if (button != 0) {
                 last_activity_ms = now;
-                gpio_put(BACKLIGHT_PIN, 0);
-            } else if (now - last_activity_ms > SCREEN_TIMEOUT_MS) {
                 gpio_put(BACKLIGHT_PIN, 1);
+            } else if (now - last_activity_ms > SCREEN_TIMEOUT_MS) {
+                gpio_put(BACKLIGHT_PIN, 0);
             }
             system_run( SYS_FREQ / 128);
            }
