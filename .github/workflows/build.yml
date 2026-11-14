@@ -12,12 +12,13 @@ jobs:
       - name: Install dependencies and Pico SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
-          git clone --depth 1 --branch 1.5.1 https://github.com /tmp/pico-sdk
+          sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib wget unzip
+          wget -q https://github.com -O pico-sdk.zip
+          unzip -q pico-sdk.zip
 
       - name: Build UF2
         run: |
-          export PICO_SDK_PATH=/tmp/pico-sdk
+          export PICO_SDK_PATH=$GITHUB_WORKSPACE/pico-sdk-1.5.1
           mkdir build && cd build
           cmake .. -DPICO_COPY_TO_RAM=1
           make -j4
