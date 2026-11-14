@@ -20,6 +20,9 @@ extern volatile bool draw;
 extern volatile uint8 *buffer_start;
 
 int button;
+#define BACKLIGHT_PIN 14
+#define SCREEN_TIMEOUT_MS 30000
+uint32_t last_activity_ms = 0;
 
 void writeR(u8 data) {
   if (data & 0x01) {
@@ -97,18 +100,29 @@ void mainloop() {
     gpio_set_dir(i, GPIO_IN);
     gpio_pull_down(i);
   }
-
+    gpio_init(BACKLIGHT_PIN);
+    gpio_set_dir(BACKLIGHT_PIN, GPIO_OUT);
+    gpio_put(BACKLIGHT_PIN, 0);
+    last_activity_ms = to_ms_since_boot(get_absolute_time());
+  
   multicore_launch_core1(render);
   init_sound();
 
-  while (1) {
-    if (emulate) {
-      emulate = false;
-      button = process_input();
-      system_run(SYS_FREQ / 128);
+ while ( 1) {
+        if ( emulate) {
+            emulate = false;
+            button = process_input();
+            uint32_t now = to_ms_since_boot(get_absolute_time());
+            if (button != 0) {
+                last_activity_ms = now;
+                gpio_put(BACKLIGHT_PIN, 0);
+            } else if (now - last_activity_ms > SCREEN_TIMEOUT_MS) {
+                gpio_put(BACKLIGHT_PIN, 1);
+            }
+            system_run( SYS_FREQ / 128);
+           }
+        }
     }
-  }
-}
 int init(int argc, char **argv) {
   u8 *rom = NULL;
   bool romflg = false;
