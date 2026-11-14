@@ -6,6 +6,7 @@
 #include "pico/multicore.h"
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "hardware/adc.h"
 #include "rom.h"
 #include <stdio.h>
 #include <string.h>
@@ -60,9 +61,46 @@ u8 readK(u8 io_S) {
 uint16_t fb[GW_LCD_WIDTH * GW_LCD_HEIGHT];
 
 void render() {
+  uint32_t last_bat_check = 0;
+  bool low_battery = false;
+
   while (true) {
     if (draw) {
+      uint32_t now = to_ms_since_boot(get_absolute_time());
+      if (now - last_bat_check > 5000 || last_bat_check == 0) {
+        last_bat_check = now;
+        uint16_t raw = adc_read();
+        // Делитель на плате Pico 1:3, опорное 3.3В, 12 бит (4095)
+        float vsys = raw * 3.3f * 3.0f / 4095.0f;
+        low_battery = (vsys < 3.3f && vsys > 1.5f);
+      }
+
       render_to_framebuffer(fb);
+
+      if (low_battery) {
+        uint16_t red = 0xF800; // Красный цвет RGB565
+        // Корпус батарейки (рамка 20x10 пикселей в левом верхнем углу)
+        for (int x = 6; x < 26; x++) {
+          fb[6 * GW_LCD_WIDTH + x] = red;
+          fb[15 * GW_LCD_WIDTH + x] = red;
+        }
+        for (int y = 6; y <= 15; y++) {
+          fb[y * GW_LCD_WIDTH + 6] = red;
+          fb[y * GW_LCD_WIDTH + 25] = red;
+        }
+        // Плюсовой контакт батарейки справа
+        for (int y = 9; y <= 12; y++) {
+          fb[y * GW_LCD_WIDTH + 26] = red;
+          fb[y * GW_LCD_WIDTH + 27] = red;
+        }
+        // Красное деление внутри (остаток заряда)
+        for (int y = 8; y <= 13; y++) {
+          for (int x = 8; x <= 11; x++) {
+            fb[y * GW_LCD_WIDTH + x] = red;
+          }
+        }
+      }
+
       LCD_WriteBitmap(0, 0, GW_LCD_WIDTH, GW_LCD_HEIGHT, fb);
       draw = false;
     }
@@ -104,6 +142,10 @@ void mainloop() {
     gpio_set_dir(BACKLIGHT_PIN, GPIO_OUT);
     gpio_put(BACKLIGHT_PIN, 1);
     last_activity_ms = to_ms_since_boot(get_absolute_time());
+
+  adc_init();
+    adc_gpio_init(29);
+    adc_select_input(3);
   
   multicore_launch_core1(render);
   init_sound();
