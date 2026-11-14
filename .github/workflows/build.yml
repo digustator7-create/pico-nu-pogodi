@@ -12,7 +12,7 @@ jobs:
       - name: Install dependencies and Pico SDK
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+          sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
           git clone --depth 1 https://github.com /tmp/pico-sdk
           cd /tmp/pico-sdk && git submodule update --init --recursive
 
