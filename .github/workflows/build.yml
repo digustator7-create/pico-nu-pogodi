@@ -2,12 +2,22 @@ name: Build Pico Firmware
 on: [push, workflow_dispatch]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.17.x"
 
       - name: Checkout Pico SDK
         uses: actions/checkout@v4
@@ -16,20 +26,16 @@ jobs:
           ref: 1.5.1
           path: pico-sdk
 
-      - name: Install dependencies
+      - name: Build Emulator
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
-
-      - name: Build UF2
-        run: |
-          export PICO_SDK_PATH=$GITHUB_WORKSPACE/pico-sdk
-          mkdir build && cd build
+          export PICO_SDK_PATH=$(pwd)/pico-sdk
+          mkdir -p build
+          cd build
           cmake .. -DPICO_COPY_TO_RAM=1
-          make -j4
+          make
 
       - name: Upload UF2 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pico_nupogodi_firmware
-          path: build/*.uf2
+          name: pico_nu_pogodi_firmware
+          path: build/pico_nu_pogodi.uf2
