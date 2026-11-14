@@ -1,0 +1,30 @@
+name: Build Pico Firmware
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies and Pico SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+          git clone --depth 1 https://github.com /tmp/pico-sdk
+          cd /tmp/pico-sdk && git submodule update --init --recursive
+
+      - name: Build UF2
+        run: |
+          export PICO_SDK_PATH=/tmp/pico-sdk
+          mkdir build && cd build
+          cmake .. -DPICO_COPY_TO_RAM=1
+          make -j4
+
+      - name: Upload UF2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pico_nupogodi_firmware
+          path: build/*.uf2
